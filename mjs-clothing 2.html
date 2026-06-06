@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MJS — Modern Clothing</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --black: #0a0a0a; --white: #f5f2ed; --red: #c8102e;
+    --khaki: #8b7355; --mid: #1a1a1a; --gray: #6b6b6b; --light-gray: #2a2a2a;
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--black); color: var(--white); font-family: 'Barlow', sans-serif; font-weight: 300; overflow-x: hidden; cursor: none; }
+
+  .cursor { width: 12px; height: 12px; background: var(--red); border-radius: 50%; position: fixed; top:0;left:0; pointer-events:none; z-index:9999; mix-blend-mode:difference; }
+  .cursor-ring { width: 34px; height: 34px; border: 1px solid rgba(245,242,237,0.35); border-radius: 50%; position: fixed; top:0;left:0; pointer-events:none; z-index:9998; transition: transform 0.22s ease; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--red); }
+
+  nav { position:fixed; top:0;left:0;right:0; z-index:1000; display:flex; align-items:center; justify-content:space-between; padding:18px 48px; background:linear-gradient(to bottom,rgba(10,10,10,0.96),transparent); transition:background 0.4s; }
+  nav.scrolled { background:rgba(10,10,10,0.98); border-bottom:1px solid rgba(255,255,255,0.06); }
+  .nav-logo { font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:6px; color:var(--white); text-decoration:none; }
+  .nav-logo span { color:var(--red); }
+  .nav-links { display:flex; gap:32px; list-style:none; }
+  .nav-links a { font-family:'Barlow Condensed',sans-serif; font-size:0.8rem; letter-spacing:3px; text-transform:uppercase; color:rgba(245,242,237,0.65); text-decoration:none; transition:color 0.2s; }
+  .nav-links a:hover { color:var(--white); }
+  .nav-right { display:flex; align-items:center; gap:16px; }
+  .cart-btn { position:relative; background:none; border:1px solid rgba(245,242,237,0.25); color:var(--white); padding:8px 20px; font-family:'Barlow Condensed',sans-serif; font-size:0.78rem; letter-spacing:3px; text-transform:uppercase; cursor:none; transition:all 0.3s; }
+  .cart-btn:hover { background:var(--red); border-color:var(--red); }
+  .cart-count { position:absolute; top:-8px;right:-8px; background:var(--red); color:white; width:18px;height:18px; border-radius:50%; font-size:0.6rem; display:flex;align-items:center;justify-content:center; font-weight:700; }
+
+  .hero { min-height:100vh; display:grid; grid-template-columns:1fr 1fr; position:relative; overflow:hidden; }
+  .hero-left { display:flex; flex-direction:column; justify-content:center; padding:120px 48px 80px; position:relative; z-index:2; }
+  .hero-tag { font-family:'Barlow Condensed',sans-serif; font-size:0.72rem; letter-spacing:5px; text-transform:uppercase; color:var(--red); margin-bottom:20px; display:flex; align-items:center; gap:12px; }
+  .hero-tag::before { content:''; display:block; width:28px;height:1px; background:var(--red); }
+  .hero-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(4rem,8vw,8rem); line-height:0.9; letter-spacing:2px; margin-bottom:28px; }
+  .hero-title em { font-style:italic; color:var(--khaki); font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:0.55em; letter-spacing:5px; display:block; margin-bottom:4px; }
+  .hero-sub { font-size:0.95rem; color:rgba(245,242,237,0.55); max-width:360px; line-height:1.75; margin-bottom:40px; }
+  .hero-ctas { display:flex; gap:14px; flex-wrap:wrap; }
+  .btn-primary { background:var(--red); color:white; padding:15px 38px; font-family:'Barlow Condensed',sans-serif; font-size:0.82rem; letter-spacing:4px; text-transform:uppercase; text-decoration:none; border:none; cursor:none; transition:all 0.3s; display:inline-block; clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px)); }
+  .btn-primary:hover { background:#a50d25; transform:translateY(-2px); }
+  .btn-outline { background:transparent; color:var(--white); padding:14px 38px; font-family:'Barlow Condensed',sans-serif; font-size:0.82rem; letter-spacing:4px; text-transform:uppercase; text-decoration:none; border:1px solid rgba(245,242,237,0.25); cursor:none; transition:all 0.3s; display:inline-block; }
+  .btn-outline:hover { border-color:var(--white); }
+  .hero-stats { display:flex; gap:40px; margin-top:56px; padding-top:36px; border-top:1px solid rgba(245,242,237,0.08); }
+  .stat-num { font-family:'Bebas Neue',sans-serif; font-size:2.2rem; line-height:1; }
+  .stat-num span { color:var(--red); }
+  .stat-label { font-size:0.65rem; letter-spacing:2px; text-transform:uppercase; color:var(--gray); margin-top:4px; }
+
+  .hero-right { position:relative; overflow:hidden; }
+  .hero-img-grid { display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; height:100%; gap:3px; }
+  .hero-img-cell { overflow:hidden; }
+  .hero-img-cell img { width:100%; height:100%; object-fit:cover; transition:transform 0.6s ease; filter:brightness(0.75); }
+  .hero-img-cell:hover img { transform:scale(1.05); filter:brightness(0.9); }
+  .hero-right-overlay { position:absolute; inset:0; background:linear-gradient(to right,rgba(10,10,10,0.6) 0%,transparent 40%); z-index:1; pointer-events:none; }
+  .hero-badge { position:absolute; bottom:40px;right:40px; z-index:2; background:var(--red); padding:14px 18px; text-align:center; }
+  .hero-badge span { font-family:'Barlow Condensed',sans-serif; font-size:0.7rem; letter-spacing:3px; text-transform:uppercase; display:block; line-height:1.9; }
+
+  .marquee { background:var(--red); padding:13px 0; overflow:hidden; }
+  .marquee-track { display:flex; animation:marquee 24s linear infinite; white-space:nowrap; }
+  .marquee-item { font-family:'Barlow Condensed',sans-serif; font-size:0.78rem; letter-spacing:4px; text-transform:uppercase; padding:0 28px; color:rgba(255,255,255,0.9); flex-shrink:0; display:flex; align-items:center; gap:28px; }
+  .marquee-item::after { content:'✦'; color:rgba(255,255,255,0.4); }
+  @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+  .section { padding:90px 48px; }
+  .section-header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:52px; }
+  .section-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.8rem,5vw,4.8rem); line-height:0.92; letter-spacing:2px; }
+  .section-title small { display:block; font-family:'Barlow Condensed',sans-serif; font-size:0.68rem; letter-spacing:5px; text-transform:uppercase; color:var(--red); margin-bottom:6px; font-weight:400; }
+
+  .filter-row { display:flex; gap:8px; margin-bottom:44px; flex-wrap:wrap; }
+  .filter-btn { font-family:'Barlow Condensed',sans-serif; font-size:0.75rem; letter-spacing:3px; text-transform:uppercase; padding:9px 22px; border:1px solid rgba(245,242,237,0.18); background:transparent; color:rgba(245,242,237,0.55); cursor:none; transition:all 0.2s; }
+  .filter-btn.active, .filter-btn:hover { background:var(--red); border-color:var(--red); color:white; }
+
+  .products-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+  .product-card { background:var(--mid); cursor:none; position:relative; transition:transform 0.3s; }
+  .product-card:hover { transform:translateY(-5px); }
+
+  .product-img { width:100%; aspect-ratio:3/4; overflow:hidden; position:relative; background:#111; }
+  .product-img img { width:100%; height:100%; object-fit:cover; transition:transform 0.5s ease; display:block; }
+  .product-card:hover .product-img img { transform:scale(1.06); }
+
+  .prod-badge { position:absolute; top:12px;left:12px; background:var(--red); color:white; font-family:'Barlow Condensed',sans-serif; font-size:0.6rem; letter-spacing:2px; text-transform:uppercase; padding:4px 10px; z-index:2; }
+  .prod-actions { position:absolute; bottom:12px;right:12px; display:flex; flex-direction:column; gap:7px; opacity:0; transition:opacity 0.3s; z-index:2; }
+  .product-card:hover .prod-actions { opacity:1; }
+  .act-btn { width:34px;height:34px; background:rgba(10,10,10,0.85); border:1px solid rgba(245,242,237,0.2); color:var(--white); display:flex;align-items:center;justify-content:center; cursor:none; font-size:0.85rem; transition:all 0.2s; }
+  .act-btn:hover { background:var(--red); border-color:var(--red); }
+
+  .product-info { padding:14px 16px 16px; }
+  .prod-brand { font-family:'Barlow Condensed',sans-serif; font-size:0.6rem; letter-spacing:3px; text-transform:uppercase; color:var(--red); margin-bottom:3px; }
+  .prod-name { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.95rem; letter-spacing:1px; margin-bottom:10px; color:var(--white); line-height:1.2; }
+  .prod-bottom { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .prod-price { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:1px; color:var(--white); }
+  .prod-sizes { display:flex; gap:3px; flex-wrap:wrap; }
+  .sz { font-family:'Barlow Condensed',sans-serif; font-size:0.58rem; letter-spacing:1px; padding:3px 5px; border:1px solid rgba(245,242,237,0.18); color:rgba(245,242,237,0.45); cursor:none; transition:all 0.15s; }
+  .sz:hover { border-color:var(--red); color:var(--white); }
+  .add-bag { width:100%; background:rgba(245,242,237,0.04); border:1px solid rgba(245,242,237,0.1); color:var(--white); padding:11px; font-family:'Barlow Condensed',sans-serif; font-size:0.72rem; letter-spacing:3px; text-transform:uppercase; cursor:none; transition:all 0.25s; }
+  .add-bag:hover { background:var(--red); border-color:var(--red); }
+
+  .banner { position:relative; overflow:hidden; min-height:460px; display:flex; align-items:center; background:linear-gradient(90deg,#c8102e 0%,#7a0017 100%); }
+  .banner-bg-txt { position:absolute; right:-10px; font-family:'Bebas Neue',sans-serif; font-size:16rem; color:rgba(255,255,255,0.04); letter-spacing:-6px; line-height:1; user-select:none; white-space:nowrap; }
+  .banner-content { position:relative; z-index:2; padding:70px 48px; max-width:680px; }
+  .banner-tag { font-family:'Barlow Condensed',sans-serif; font-size:0.7rem; letter-spacing:5px; text-transform:uppercase; color:rgba(255,255,255,0.65); margin-bottom:18px; display:flex;align-items:center;gap:12px; }
+  .banner-tag::before { content:''; display:block; width:28px;height:1px; background:rgba(255,255,255,0.4); }
+  .banner-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(3rem,6vw,5.5rem); line-height:0.92; margin-bottom:20px; }
+  .banner-desc { font-size:0.95rem; color:rgba(255,255,255,0.7); line-height:1.75; margin-bottom:32px; max-width:480px; }
+
+  .features { display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid rgba(245,242,237,0.07); }
+  .feat { padding:44px 32px; border-right:1px solid rgba(245,242,237,0.07); transition:background 0.3s; }
+  .feat:last-child { border-right:none; }
+  .feat:hover { background:rgba(245,242,237,0.02); }
+  .feat-icon { font-size:1.8rem; margin-bottom:14px; display:block; }
+  .feat-title { font-family:'Barlow Condensed',sans-serif; font-size:0.9rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:7px; }
+  .feat-desc { font-size:0.82rem; color:var(--gray); line-height:1.6; }
+
+  .newsletter { background:var(--mid); padding:90px 48px; display:grid; grid-template-columns:1fr 1fr; gap:70px; align-items:center; }
+  .nl-desc { color:var(--gray); font-size:0.9rem; line-height:1.7; margin-top:18px; }
+  .nl-form { display:flex; flex-direction:column; gap:14px; }
+  .nl-input { background:rgba(245,242,237,0.04); border:1px solid rgba(245,242,237,0.12); color:var(--white); padding:15px 18px; font-family:'Barlow',sans-serif; font-size:0.88rem; outline:none; transition:border-color 0.3s; }
+  .nl-input::placeholder { color:var(--gray); }
+  .nl-input:focus { border-color:var(--red); }
+  .nl-note { font-size:0.72rem; color:var(--gray); }
+
+  footer { background:#050505; padding:70px 48px 36px; border-top:1px solid rgba(245,242,237,0.05); }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:44px; margin-bottom:52px; }
+  .footer-logo { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:6px; color:var(--white); text-decoration:none; margin-bottom:16px; display:inline-block; }
+  .footer-logo span { color:var(--red); }
+  .footer-desc { font-size:0.82rem; color:var(--gray); line-height:1.7; max-width:240px; margin-bottom:20px; }
+  .socials { display:flex; gap:10px; }
+  .soc { width:34px;height:34px; border:1px solid rgba(245,242,237,0.12); display:flex;align-items:center;justify-content:center; color:var(--gray); text-decoration:none; font-size:0.85rem; transition:all 0.2s; cursor:none; }
+  .soc:hover { background:var(--red); border-color:var(--red); color:white; }
+  .footer-head { font-family:'Barlow Condensed',sans-serif; font-size:0.7rem; letter-spacing:4px; text-transform:uppercase; color:var(--white); margin-bottom:18px; }
+  .footer-links { list-style:none; display:flex; flex-direction:column; gap:11px; }
+  .footer-links a { font-size:0.82rem; color:var(--gray); text-decoration:none; transition:color 0.2s; cursor:none; }
+  .footer-links a:hover { color:var(--white); }
+  .footer-bottom { border-top:1px solid rgba(245,242,237,0.05); padding-top:22px; display:flex; align-items:center; justify-content:space-between; }
+  .footer-copy { font-size:0.72rem; color:var(--gray); }
+  .footer-legal { display:flex; gap:20px; }
+  .footer-legal a { font-size:0.72rem; color:var(--gray); text-decoration:none; cursor:none; transition:color 0.2s; }
+  .footer-legal a:hover { color:var(--white); }
+
+  .cart-drawer { position:fixed; top:0;right:-460px; width:460px; height:100vh; background:#111; border-left:1px solid rgba(245,242,237,0.08); z-index:2000; transition:right 0.4s cubic-bezier(0.4,0,0.2,1); display:flex; flex-direction:column; }
+  .cart-drawer.open { right:0; }
+  .cart-head { padding:26px; border-bottom:1px solid rgba(245,242,237,0.07); display:flex;align-items:center;justify-content:space-between; }
+  .cart-title { font-family:'Bebas Neue',sans-serif; font-size:1.7rem; letter-spacing:3px; }
+  .close-cart { background:none;border:none;color:var(--gray);font-size:1.4rem;cursor:none;transition:color 0.2s; }
+  .close-cart:hover { color:var(--white); }
+  .cart-items { flex:1; overflow-y:auto; padding:18px 26px; }
+  .cart-empty { text-align:center; padding:50px 20px; color:var(--gray); }
+  .cart-empty span { font-size:2.5rem;display:block;margin-bottom:14px; }
+  .cart-empty p { font-family:'Barlow Condensed';letter-spacing:2px;text-transform:uppercase;font-size:0.8rem; }
+  .cart-item { display:grid; grid-template-columns:72px 1fr auto; gap:14px; padding:14px 0; border-bottom:1px solid rgba(245,242,237,0.05); align-items:start; }
+  .cart-item-img { height:72px; overflow:hidden; background:var(--light-gray); }
+  .cart-item-img img { width:100%;height:100%;object-fit:cover; }
+  .ci-name { font-family:'Barlow Condensed';font-weight:700;font-size:0.9rem;letter-spacing:1px;margin-bottom:3px; }
+  .ci-detail { font-size:0.75rem;color:var(--gray); }
+  .ci-price { font-family:'Barlow Condensed';font-size:0.95rem;font-weight:700;white-space:nowrap; }
+  .ci-remove { font-size:0.65rem; color:var(--gray); cursor:none; background:none;border:none; letter-spacing:1px; text-transform:uppercase; font-family:'Barlow Condensed'; margin-top:6px; transition:color 0.2s; display:block; }
+  .ci-remove:hover { color:var(--red); }
+  .cart-foot { padding:18px 26px 26px; border-top:1px solid rgba(245,242,237,0.07); }
+  .cart-total { display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(245,242,237,0.07); }
+  .ct-label { font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:3px;text-transform:uppercase;color:var(--gray); }
+  .ct-amount { font-family:'Bebas Neue';font-size:1.8rem;letter-spacing:2px; }
+  .checkout-btn { width:100%;background:var(--red);color:white;border:none;padding:16px;font-family:'Barlow Condensed';font-size:0.85rem;letter-spacing:4px;text-transform:uppercase;cursor:none;transition:background 0.2s; }
+  .checkout-btn:hover { background:#a50d25; }
+
+  .overlay { position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1999;opacity:0;pointer-events:none;transition:opacity 0.4s; }
+  .overlay.visible { opacity:1;pointer-events:all; }
+  .toast { position:fixed;bottom:36px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--red);color:white;padding:13px 26px;font-family:'Barlow Condensed';font-size:0.8rem;letter-spacing:3px;text-transform:uppercase;z-index:3000;transition:transform 0.4s cubic-bezier(0.4,0,0.2,1);white-space:nowrap; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  .loader { position:fixed;inset:0;background:var(--black);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;transition:opacity 0.5s,visibility 0.5s; }
+  .loader.gone { opacity:0;visibility:hidden; }
+  .loader-logo { font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:10px;animation:blink 1s infinite; }
+  .loader-logo span { color:var(--red); }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.4} }
+  .loader-bar { width:180px;height:2px;background:rgba(245,242,237,0.08);position:relative;overflow:hidden; }
+  .loader-bar::after { content:'';position:absolute;left:-100%;top:0;bottom:0;width:100%;background:var(--red);animation:loadbar 1.4s ease-in-out infinite; }
+  @keyframes loadbar { 0%{left:-100%}50%{left:0}100%{left:100%} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:900px){
+    nav { padding:14px 20px; }
+    .nav-links { display:none; }
+    .hero { grid-template-columns:1fr; }
+    .hero-right { display:none; }
+    .hero-left { padding:100px 20px 60px; }
+    .section { padding:60px 20px; }
+    .products-grid { grid-template-columns:repeat(2,1fr); gap:12px; }
+    .features { grid-template-columns:repeat(2,1fr); }
+    .newsletter { grid-template-columns:1fr; gap:36px; }
+    .footer-grid { grid-template-columns:1fr 1fr; }
+    .cart-drawer { width:100vw; }
+    .banner-content { padding:50px 20px; }
+  }
+  @media(max-width:500px){
+    .products-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+    .hero-stats { gap:20px; flex-wrap:wrap; }
+    .footer-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-logo">MJ<span>S</span></div>
+  <div class="loader-bar"></div>
+</div>
+
+<div class="cursor" id="cur"></div>
+<div class="cursor-ring" id="ring"></div>
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-head">
+    <div class="cart-title">Your Bag</div>
+    <button class="close-cart" onclick="closeCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty"><span>🛍️</span><p>Your bag is empty</p></div>
+  </div>
+  <div class="cart-foot">
+    <div class="cart-total">
+      <span class="ct-label">Total</span>
+      <span class="ct-amount" id="cartTotal">₦0</span>
+    </div>
+    <button class="checkout-btn" onclick="checkout()">Checkout — Secure Pay</button>
+  </div>
+</div>
+
+<nav id="nav">
+  <a href="#" class="nav-logo">MJ<span>S</span></a>
+  <ul class="nav-links">
+    <li><a href="#shop">Shop</a></li>
+    <li><a href="#shop">New Drops</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#newsletter">Contact</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="cart-btn" onclick="toggleCart()">Bag <span class="cart-count" id="cartCount">0</span></button>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-tag">SS 2026 Collection — Nigeria</div>
+    <h1 class="hero-title"><em>Wear Your</em>TRUTH</h1>
+    <p class="hero-sub">MJS Modern Clothing — street culture meets precision craft. Camo tees, graphic tees, gym wear, hoodies & more. Built for those who move different.</p>
+    <div class="hero-ctas">
+      <a href="#shop" class="btn-primary">Shop Now</a>
+      <a href="#about" class="btn-outline">Our Story</a>
+    </div>
+    <div class="hero-stats">
+      <div><div class="stat-num">8<span>+</span></div><div class="stat-label">Live Products</div></div>
+      <div><div class="stat-num">100<span>%</span></div><div class="stat-label">Original Designs</div></div>
+      <div><div class="stat-num">₦<span>25K</span></div><div class="stat-label">Prices From</div></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-img-grid">
+      <div class="hero-img-cell"><img src="https://res.cloudinary.com/dadrw53mm/image/upload/v1780707789/IMG_1529_tjsnd7.jpg" alt="Camo Tee" loading="eager"></div>
+      <div class="hero-img-cell"><img src="https://res.cloudinary.com/dadrw53mm/image/upload/v1780707790/IMG_1269_vf1byu.jpg" alt="Mysteries Hoodie" loading="eager"></div>
+      <div class="hero-img-cell"><img src="https://res.cloudinary.com/dadrw53mm/image/upload/v1780707790/IMG_0573_pjl1re.jpg" alt="Mona Lisa Tee" loading="eager"></div>
+      <div class="hero-img-cell"><img src="https://res.cloudinary.com/dadrw53mm/image/upload/v1780707790/IMG_1266_hmnrlj.jpg" alt="Grove Hoodie" loading="eager"></div>
+    </div>
+    <div class="hero-right-overlay"></div>
+    <div class="hero-badge"><span>NEW</span><span>DROP</span><span>2026</span><span>🔥</span></div>
+  </div>
+</section>
+
+<div class="marquee">
+  <div class="marquee-track">
+    <div class="marquee-item">Streetwear</div><div class="marquee-item">Gym Wear</div><div class="marquee-item">Camo Tees</div><div class="marquee-item">Graphic Tees</div><div class="marquee-item">Hoodies</div><div class="marquee-item">MJS Original</div><div class="marquee-item">Stop At Nothing</div><div class="marquee-item">Made Different</div>
+    <div class="marquee-item">Streetwear</div><div class="marquee-item">Gym Wear</div><div class="marquee-item">Camo Tees</div><div class="marquee-item">Graphic Tees</div><div class="marquee-item">Hoodies</div><div class="marquee-item">MJS Original</div><div class="marquee-item">Stop At Nothing</div><div class="marquee-item">Made Different</div>
+  </div>
+</div>
+
+<section class="section" id="shop" style="background:var(--mid)">
+  <div class="section-header">
+    <div class="section-title"><small>MJS Originals</small>Shop All</div>
+  </div>
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="filter('all',this)">All</button>
+    <button class="filter-btn" onclick="filter('street',this)">Streetwear</button>
+    <button class="filter-btn" onclick="filter('gym',this)">Gym</button>
+    <button class="filter-btn" onclick="filter('tees',this)">Tees</button>
+    <button class="filter-btn" onclick="filter('camo',this)">Camo</button>
+  </div>
+  <div class="products-grid" id="grid"></div>
+</section>
+
+<section class="banner" id="about">
+  <div class="banner-bg-txt">MJS</div>
+  <div class="banner-content">
+    <div class="banner-tag">Who We Are</div>
+    <h2 class="banner-title">Born From<br>The Streets</h2>
+    <p class="banner-desc">MJS Modern Clothing was built for people who live life full throttle — on the streets, in the gym, on the field. Every stitch, every cut, every drop is designed with raw intent. 100% original. Copyright protected by MJS Studios.</p>
+    <a href="#shop" class="btn-primary" style="background:white;color:#c8102e">Browse All Gear</a>
+  </div>
+</section>
+
+<div class="features">
+  <div class="feat"><span class="feat-icon">🚀</span><div class="feat-title">Fast Delivery</div><div class="feat-desc">Quick dispatch across Nigeria. Your order tracked from door to door.</div></div>
+  <div class="feat"><span class="feat-icon">🔒</span><div class="feat-title">Secure Payment</div><div class="feat-desc">Safe and trusted payment methods. Your details are always protected.</div></div>
+  <div class="feat"><span class="feat-icon">✅</span><div class="feat-title">100% Original</div><div class="feat-desc">Every design copyright protected by MJS Studios. No copies, no fakes.</div></div>
+  <div class="feat"><span class="feat-icon">💬</span><div class="feat-title">DM to Order</div><div class="feat-desc">WhatsApp or TikTok us to place your order. We respond fast.</div></div>
+</div>
+
+<!-- HOW TO ORDER -->
+<section style="background:#111;padding:80px 48px;" id="how-to-order">
+  <div style="max-width:900px;margin:0 auto;">
+    <div class="section-title" style="margin-bottom:48px;"><small>Simple Process</small>How To Order</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+      <div style="background:var(--mid);padding:32px 24px;border-top:3px solid var(--red);">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--red);line-height:1;margin-bottom:12px;">01</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Pick Your Item</div>
+        <div style="font-size:0.85rem;color:var(--gray);line-height:1.6;">Browse the shop, find what you want, note the name, size and price.</div>
+      </div>
+      <div style="background:var(--mid);padding:32px 24px;border-top:3px solid var(--red);">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--red);line-height:1;margin-bottom:12px;">02</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Contact Us</div>
+        <div style="font-size:0.85rem;color:var(--gray);line-height:1.6;">Send us a WhatsApp or TikTok DM with item name, size, and your delivery address.</div>
+      </div>
+      <div style="background:var(--mid);padding:32px 24px;border-top:3px solid var(--red);">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--red);line-height:1;margin-bottom:12px;">03</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Pay & Receive</div>
+        <div style="font-size:0.85rem;color:var(--gray);line-height:1.6;">We confirm your order, you pay, and we ship it straight to your door.</div>
+      </div>
+    </div>
+    <!-- Contact Buttons -->
+    <div style="display:flex;gap:16px;margin-top:48px;flex-wrap:wrap;">
+      <a href="https://wa.me/2347015916705" target="_blank" style="display:flex;align-items:center;gap:10px;background:#25D366;color:white;padding:16px 32px;font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;letter-spacing:3px;text-transform:uppercase;text-decoration:none;transition:opacity 0.2s;">
+        <span style="font-size:1.2rem;">📱</span> WhatsApp Us
+      </a>
+      <a href="https://www.tiktok.com/@isthatmjs" target="_blank" style="display:flex;align-items:center;gap:10px;background:#010101;color:white;border:1px solid rgba(255,255,255,0.2);padding:16px 32px;font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;letter-spacing:3px;text-transform:uppercase;text-decoration:none;transition:opacity 0.2s;">
+        <span style="font-size:1.2rem;">🎵</span> TikTok DM
+      </a>
+      <a href="mailto:ks6340037@gmail.com" style="display:flex;align-items:center;gap:10px;background:transparent;color:white;border:1px solid rgba(255,255,255,0.2);padding:16px 32px;font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;letter-spacing:3px;text-transform:uppercase;text-decoration:none;transition:opacity 0.2s;">
+        <span style="font-size:1.2rem;">✉️</span> Email Us
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="newsletter" id="newsletter">
+  <div>
+    <div class="section-title"><small>Stay Connected</small>Get The<br>Drop First</div>
+    <p class="nl-desc">Join the MJS crew. Be first to know about new drops, restocks, and exclusive deals. Nigeria's freshest brand — stay plugged in.</p>
+  </div>
+  <div class="nl-form">
+    <input type="text" class="nl-input" placeholder="Your name">
+    <input type="email" class="nl-input" placeholder="Email address" id="emailInput">
+    <input type="tel" class="nl-input" placeholder="WhatsApp number (optional)">
+    <button class="btn-primary" onclick="subscribe()" style="align-self:flex-start">Join the Crew</button>
+    <p class="nl-note">No spam. Only heat. We respect your privacy.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-grid">
+    <div>
+      <a href="#" class="footer-logo">MJ<span>S</span></a>
+      <p class="footer-desc">MJS Modern Clothing — built for those who move with intent. Street. Gym. Life. 100% Nigerian. 100% Original.</p>
+      <div class="socials">
+        <a href="https://www.tiktok.com/@isthatmjs" target="_blank" class="soc" title="TikTok">🎵</a>
+        <a href="https://wa.me/2347015916705" target="_blank" class="soc" title="WhatsApp">📱</a>
+        <a href="mailto:ks6340037@gmail.com" class="soc" title="Email">✉️</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-head">Shop</div>
+      <ul class="footer-links">
+        <li><a href="#shop">Streetwear</a></li>
+        <li><a href="#shop">Gym Wear</a></li>
+        <li><a href="#shop">Graphic Tees</a></li>
+        <li><a href="#shop">Camo Collection</a></li>
+        <li><a href="#shop">Hoodies</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-head">Info</div>
+      <ul class="footer-links">
+        <li><a href="#about">About MJS</a></li>
+        <li><a href="#how-to-order">How to Order</a></li>
+        <li><a href="#newsletter">Stay Updated</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-head">Contact Us</div>
+      <ul class="footer-links">
+        <li><a href="https://wa.me/2347015916705" target="_blank">📱 WhatsApp</a></li>
+        <li><a href="https://www.tiktok.com/@isthatmjs" target="_blank">🎵 TikTok: @isthatmjs</a></li>
+        <li><a href="mailto:ks6340037@gmail.com">✉️ ks6340037@gmail.com</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2026 MJS Modern Clothing. All rights reserved. Designs copyright protected by MJS Studios.</div>
+    <div class="footer-legal"><a href="#">Privacy</a><a href="#">Terms</a></div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// CURSOR
+const cur = document.getElementById('cur');
+const ring = document.getElementById('ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX; my=e.clientY;
+  cur.style.transform=`translate(${mx-6}px,${my-6}px)`;
+});
+(function animRing(){
+  rx+=(mx-rx-17)*0.13; ry+=(my-ry-17)*0.13;
+  ring.style.transform=`translate(${rx}px,${ry}px)`;
+  requestAnimationFrame(animRing);
+})();
+
+window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',scrollY>50));
+window.addEventListener('load',()=>setTimeout(()=>document.getElementById('loader').classList.add('gone'),1200));
+
+// PRODUCTS — Exact Cloudinary URLs
+const PRODUCTS = [
+  { id:1, name:'Stop At Nothing Camo Tee', category:'camo', price:45000, badge:'Best Seller', img:'https://res.cloudinary.com/dadrw53mm/image/upload/v1780707789/IMG_1529_tjsnd7.jpg', sizes:['S','M','L','XL'] },
+  { id:2, name:'Mysteries Camo Zip Hoodie', category:'street', price:65000, badge:'New Drop', img:'https://res.cloudinary.com/dadrw53mm/image/upload/v1780707790/IMG_1269_vf1byu.jpg', sizes:['S','M','L','XL'] },
+  { id:3, name:'Grove St. Zip Hoodie', category:'street', price:65000, badge:'Limited', img:'https://res.cloudinary.com/dadrw53mm/image/upload/v1780707790/IMG_1266_hmnrlj.jpg', sizes:['S','M','L','XL'] },
+  { id:4, name:'MJS Performance Tank', category:'gym', price:25000, badge:'Essential', img:'https://res.cloudinary.com/dadrw53mm/image/upload/v1780707790/IMG_0575_m0xyuo.jpg', sizes:['S','M','L','XL'] },
+  { id:5, name:'Stop At Nothing Gym Set', category:'gym', price:65000, badge:'New', img:'https://res.cloudinary.com/dadrw53mm/image/upload/v1780707789/IMG_0574_iacqrc.jpg', sizes:['S','M','L','XL'] },
+  { id:6, name:'Einstein Graphic Muscle Tee', category:'tees', price:25000, badge:'Iconic', img:'https://res.cloudinary.com/dadrw53mm/image/upload/v1780707790/IMG_0572_eskhxh.jpg', sizes:['S','M','L','XL'] },
+  { id:7, name:'Mona Lisa Oversized Tee', category:'tees', price:25000, badge:'Popular', img:'https://res.cloudinary.com/dadrw53mm/image/upload/v1780707790/IMG_0573_pjl1re.jpg', sizes:['XS','S','M','L','XL'] },
+  { id:8, name:'Digital Camo Cargo Pants', category:'camo', price:60000, badge:'New', img:'https://res.cloudinary.com/dadrw53mm/image/upload/v1780707789/IMG_0322_lqlsnh.jpg', sizes:['S','M','L','XL','XXL'] },
+];
+
+let cart = [];
+
+function fmt(n){ return '₦'+n.toLocaleString('en-NG'); }
+
+function renderGrid(f){
+  const g = document.getElementById('grid');
+  const list = f==='all' ? PRODUCTS : PRODUCTS.filter(p=>p.category===f);
+  g.innerHTML = list.map((p,i)=>`
+    <div class="product-card" style="animation:fadeUp 0.4s ${i*0.07}s both">
+      <div class="product-img">
+        <div class="prod-badge">${p.badge}</div>
+        <img src="${p.img}" alt="${p.name}" loading="lazy">
+        <div class="prod-actions">
+          <button class="act-btn" onclick="addToCart(${p.id})" title="Add to Bag">+</button>
+          <button class="act-btn" title="Wishlist">♡</button>
+        </div>
+      </div>
+      <div class="product-info">
+        <div class="prod-brand">MJS Modern</div>
+        <div class="prod-name">${p.name}</div>
+        <div class="prod-bottom">
+          <div class="prod-price">${fmt(p.price)}</div>
+          <div class="prod-sizes">${p.sizes.slice(0,3).map(s=>`<div class="sz">${s}</div>`).join('')}</div>
+        </div>
+        <button class="add-bag" onclick="addToCart(${p.id})">Add to Bag</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filter(cat,btn){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid(cat);
+}
+
+function addToCart(id){
+  const p = PRODUCTS.find(x=>x.id===id);
+  if(!p) return;
+  const ex = cart.find(c=>c.id===id);
+  ex ? ex.qty++ : cart.push({...p, qty:1});
+  updateCart();
+  toast(`${p.name} added 🔥`);
+}
+
+function removeFromCart(id){
+  cart = cart.filter(c=>c.id!==id);
+  updateCart();
+}
+
+function updateCart(){
+  const count = cart.reduce((a,c)=>a+c.qty,0);
+  document.getElementById('cartCount').textContent = count;
+  const total = cart.reduce((a,c)=>a+c.price*c.qty,0);
+  document.getElementById('cartTotal').textContent = fmt(total);
+  const el = document.getElementById('cartItems');
+  if(!cart.length){
+    el.innerHTML=`<div class="cart-empty"><span>🛍️</span><p>Your bag is empty</p></div>`;
+    return;
+  }
+  el.innerHTML = cart.map(c=>`
+    <div class="cart-item">
+      <div class="cart-item-img"><img src="${c.img}" alt="${c.name}"></div>
+      <div>
+        <div class="ci-name">${c.name}</div>
+        <div class="ci-detail">Qty: ${c.qty} · Size: M</div>
+        <button class="ci-remove" onclick="removeFromCart(${c.id})">Remove</button>
+      </div>
+      <div class="ci-price">${fmt(c.price*c.qty)}</div>
+    </div>
+  `).join('');
+}
+
+function toggleCart(){ document.getElementById('cartDrawer').classList.toggle('open'); document.getElementById('overlay').classList.toggle('visible'); }
+function closeCart(){ document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('overlay').classList.remove('visible'); }
+
+function checkout(){
+  if(!cart.length){toast('Your bag is empty!');return;}
+  const items = cart.map(c=>`• ${c.name} x${c.qty} (${fmt(c.price*c.qty)})`).join('\n');
+  const total = cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const msg = encodeURIComponent(`Hello MJS! I want to place an order:\n\n${items}\n\nTotal: ${fmt(total)}\n\nPlease confirm availability and delivery details. Thank you!`);
+  window.open(`https://wa.me/2347015916705?text=${msg}`,'_blank');
+  toast('Opening WhatsApp... 🔥');
+}
+
+function subscribe(){
+  const e = document.getElementById('emailInput').value;
+  if(!e||!e.includes('@')){toast('Enter a valid email!');return;}
+  toast('Welcome to the MJS Crew! 🔥');
+  document.getElementById('emailInput').value='';
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+renderGrid('all');
+</script>
+</body>
+</html>
